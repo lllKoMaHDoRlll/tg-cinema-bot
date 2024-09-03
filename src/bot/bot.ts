@@ -17,4 +17,34 @@ export default class Bot {
         process.once("SIGINT", () => this.bot.stop("SIGINT"));
         process.once("SIGTERM", () => this.bot.stop("SIGTERM"));
     };
+
+    startCommand = async (ctx: Context) => {
+        const userId = ctx.from?.id;
+        if (userId) {
+            const unsubscribedChannels = await getUnsubscribedChannels(
+                this,
+                userId
+            );
+
+            if (unsubscribedChannels.length) {
+                let inlineKeyboard: InlineKeyboardButton[][] = [];
+                unsubscribedChannels.forEach((value, index, array) => {
+                    const channelLinkButton: InlineKeyboardButton = {
+                        url: `https://t.me/${value}`,
+                        text: value,
+                    };
+                    inlineKeyboard.push([channelLinkButton]);
+                });
+
+                ctx.reply(
+                    "Упс, ты подписан не на все каналы. Подпишись на них, чтобы получить доступ к фильмам.",
+                    {
+                        reply_markup: {
+                            inline_keyboard: inlineKeyboard,
+                        },
+                    }
+                );
+            }
+        }
+    };
 }
