@@ -1,3 +1,4 @@
+import { randomInt } from "crypto";
 import Bot from "../bot/bot";
 
 const getUnsubscribedChannels = async (bot: Bot, userId: number): Promise<string[]> => {
@@ -13,4 +14,8 @@ const getChannels = async (): Promise<string[]> => {
     return [];
 }
 
-export { getUnsubscribedChannels };
+const generateInternalId = (): number => {
+    return randomInt(1000);
+}
+
+export { getUnsubscribedChannels, generateInternalId };
