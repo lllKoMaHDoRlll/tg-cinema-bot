@@ -1,6 +1,7 @@
 import { Context, Telegraf } from "telegraf";
 import { getUnsubscribedChannels } from "../utils/utils";
 import { InlineKeyboardButton } from "telegraf/typings/core/types/typegram";
+import { searchMovie } from "../utils/API/movies";
 
 export default class Bot {
     bot: Telegraf;
@@ -12,8 +13,11 @@ export default class Bot {
         }
     }
 
-    runBot = async () => {
-        await this.bot.launch();
+    runBot = () => {
+        this.bot.launch();
+
+        this.bot.command("add", this.addMovieCommand);
+
         process.once("SIGINT", () => this.bot.stop("SIGINT"));
         process.once("SIGTERM", () => this.bot.stop("SIGTERM"));
     };
@@ -47,4 +51,22 @@ export default class Bot {
             }
         }
     };
+
+    addMovieCommand = async (ctx: Context) => {
+        
+        console.log(ctx.text, ctx.from);
+        const query = ctx.text?.slice(5);
+        if (!query) {
+            ctx.reply("Укажите название фильма!");
+            return;
+        }
+
+        const movie = await searchMovie(query);
+
+        // Film adding 
+
+        ctx.replyWithPhoto(movie.poster, {
+            caption: "Фильм \"" + movie.name + "\" был успешно добавлен.\n\nЕго id: " + movie.internalId
+        })
+    }
 }
