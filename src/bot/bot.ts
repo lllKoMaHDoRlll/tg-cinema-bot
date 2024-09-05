@@ -2,21 +2,27 @@ import { Context, Telegraf } from "telegraf";
 import { getUnsubscribedChannels } from "../utils/utils";
 import { InlineKeyboardButton } from "telegraf/typings/core/types/typegram";
 import { searchMovie } from "../utils/API/movies";
+import filmRepository from "../db/repositories/film.repository";
+import { Movie } from "../types/movies/movies";
+import Film from "../db/models/film.model";
 
 export default class Bot {
     bot: Telegraf;
+    filmRepository;
 
     constructor(tg_token: string) {
         this.bot = new Telegraf(tg_token);
         if (!this.bot) {
             throw new Error("Initialization failed. Check TG_TOKEN");
         }
+        this.filmRepository = filmRepository;
     }
 
     runBot = () => {
         this.bot.launch();
 
         this.bot.command("add", this.addMovieCommand);
+        this.bot.command("get", this.getMovieCommand);
 
         process.once("SIGINT", () => this.bot.stop("SIGINT"));
         process.once("SIGTERM", () => this.bot.stop("SIGTERM"));
@@ -63,10 +69,44 @@ export default class Bot {
 
         const movie = await searchMovie(query);
 
-        // Film adding 
+        await this.filmRepository.create(movie);
 
         ctx.replyWithPhoto(movie.poster, {
             caption: "Фильм \"" + movie.name + "\" был успешно добавлен.\n\nЕго id: " + movie.internalId
         })
+    }
+
+    getMovieCommand = async (ctx: Context) => {
+        const query = ctx.text?.slice(5);
+        if (!query) {
+            ctx.reply("Укажите номер фильма!");
+            return;
+        }
+
+        const internalId = Number.parseInt(query);
+
+        const movie: Film | undefined = await this.filmRepository.getByInternalId(internalId);
+
+        if (!movie) {
+            ctx.reply("Фильм с указанным номером не найден, проверьте правильность номера.");
+            return;
+        }
+
+        console.log(movie);
+
+        const caption = `
+            Название: ${movie.name}
+            Оригинальное название: ${movie.alternative_name}
+            Год: ${movie.year}
+            Описание: ${movie.short_description}
+            Id на кинопоиске: ${movie.external_id}
+        `;
+        console.log(movie.alternativeName);
+
+        console.log(caption);
+
+        ctx.replyWithPhoto(movie.poster, {
+            caption: caption
+        });
     }
 }
