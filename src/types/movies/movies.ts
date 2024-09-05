@@ -2,7 +2,8 @@
 export type Movie = {
     name: string
     alternativeName: string
-    id: number
+    externalId: number
+    internalId: number
     year: number
     description: string
     shortDescription: string
