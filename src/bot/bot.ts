@@ -5,10 +5,13 @@ import { searchMovie } from "../utils/API/movies";
 import filmRepository from "../db/repositories/film.repository";
 import { Movie } from "../types/movies/movies";
 import Film from "../db/models/film.model";
+import { Admin } from "../types/roles/admin";
+import adminRepository from "../db/repositories/admin.repository";
 
 export default class Bot {
     bot: Telegraf;
     filmRepository;
+    adminRepository;
 
     constructor(tg_token: string) {
         this.bot = new Telegraf(tg_token);
@@ -16,6 +19,7 @@ export default class Bot {
             throw new Error("Initialization failed. Check TG_TOKEN");
         }
         this.filmRepository = filmRepository;
+        this.adminRepository = adminRepository;
     }
 
     runBot = () => {
@@ -59,8 +63,25 @@ export default class Bot {
     };
 
     addMovieCommand = async (ctx: Context) => {
-        
-        console.log(ctx.text, ctx.from);
+        if (ctx.from?.is_bot) return;
+
+        const admins = await this.adminRepository.getAll();
+
+        if (admins.filter((value) => {value.id === ctx.from?.id}).length) {
+            ctx.reply("You are not admin!");
+            return;
+        }
+
+        const userId = ctx.from?.id;
+        if (!userId) return;
+        const isAdmin = await this.adminRepository.getById(userId);
+
+        if (!isAdmin) {
+            console.log(userId + ": " + ctx.from.first_name);
+            ctx.reply("Вы не админ!");
+            return;
+        }
+
         const query = ctx.text?.slice(5);
         if (!query) {
             ctx.reply("Укажите название фильма!");
