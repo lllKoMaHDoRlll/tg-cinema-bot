@@ -12,7 +12,7 @@ class FilmRepository implements IFilmRepository {
         return new Promise((resolve, reject) => {
             connection.query(
                 "INSERT INTO films (name, alternative_name, external_id, internal_id, year, description, short_description, poster) VALUES (?, ?, ?, ?, ?, ?, ?, ?)",
-                [film.name, film.alternativeName, film.externalId, film.internalId, film.year, film.description, film.shortDescription, film.poster],
+                [film.name, film.alternative_name, film.external_id, film.internal_id, film.year, film.description, film.short_description, film.poster],
                 (err, res) => {
                     if (err) reject(err);
                     else resolve();

@@ -16,12 +16,12 @@ const searchMovie = async (query: string, page: number = 1, limit: number = 10):
 
     const movie: Movie = {
         name: result.data.docs[0].name,
-        alternativeName: result.data.docs[0].alternativeName,
-        externalId: result.data.docs[0].id,
-        internalId: generateInternalId(),
+        alternative_name: result.data.docs[0].alternativeName,
+        external_id: result.data.docs[0].id,
+        internal_id: generateInternalId(),
         year: result.data.docs[0].year,
         description: result.data.docs[0].description,
-        shortDescription: result.data.docs[0].shortDescription,
+        short_description: result.data.docs[0].shortDescription,
         poster: result.data.docs[0].poster.url
     };
     return movie;

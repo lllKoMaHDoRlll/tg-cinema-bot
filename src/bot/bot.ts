@@ -72,7 +72,7 @@ export default class Bot {
         await this.filmRepository.create(movie);
 
         ctx.replyWithPhoto(movie.poster, {
-            caption: "Фильм \"" + movie.name + "\" был успешно добавлен.\n\nЕго id: " + movie.internalId
+            caption: "Фильм \"" + movie.name + "\" был успешно добавлен.\n\nЕго id: " + movie.internal_id
         })
     }
 
