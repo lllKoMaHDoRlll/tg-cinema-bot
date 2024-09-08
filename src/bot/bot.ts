@@ -29,8 +29,11 @@ export default class Bot {
         this.bot.launch();
 
         this.bot.start(this.startCommand);
+
         this.bot.command("add", this.addMovieCommand);
         this.bot.command("get", this.getMovieCommand);
+
+        this.bot.help(this.helpCommand);
 
         process.once("SIGINT", () => this.bot.stop("SIGINT"));
         process.once("SIGTERM", () => this.bot.stop("SIGTERM"));
@@ -115,6 +118,30 @@ export default class Bot {
         ctx.replyWithPhoto(movie.poster, {
             caption: caption
         });
+    }
+
+    helpCommand = async (ctx: Context) => {
+        const userId = ctx.from?.id;
+        if (!userId) return;
+
+        const isAdmin = await this.adminRepository.getById(userId);
+
+        let messageText = `
+Вот список доступных команд: 
+
+1. /start - Проверить подписку на каналы.
+2. /get номер_фильма - Получить фильм по его номеру.
+3. /help - Список комманд.
+        `;
+        if (isAdmin) {
+            messageText += `
+Команды, доступные для админов:
+
+1. /add название_фильма - добавить фильм и получить его номер.
+            `
+        }
+
+        ctx.reply(messageText);
     }
 
     askToSubscribe = async (ctx: Context, unsubscribedChannels: Channel[]) => {
