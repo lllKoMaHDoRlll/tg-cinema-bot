@@ -1,17 +1,21 @@
 import { randomInt } from "crypto";
 import Bot from "../bot/bot";
+import Channel from "../db/models/channel.model";
 
-const getUnsubscribedChannels = async (bot: Bot, userId: number): Promise<string[]> => {
-    let channels = await getChannels();
-    channels.filter(async (value, index, array) => {
-        return !["creator", "administrator", "member"].includes((await bot.bot.telegram.getChatMember(value, userId)).status);
-    });
+const getUnsubscribedChannels = async (bot: Bot, userId: number): Promise<Channel[]> => {
+    let channels = await bot.channelRepository.getAll();
+    let unsubscibedChannels: Channel[] = [];
 
-    return channels;
-}
+    for (let index in channels) {
+        const channel = channels[index];
+        const memberStatus = (await bot.bot.telegram.getChatMember(channel.username, userId)).status;
+        const isMember = ["creator", "administrator", "member"].includes(memberStatus);
+        if (!isMember) {
+            unsubscibedChannels.push(channel);
+        }
+    }
 
-const getChannels = async (): Promise<string[]> => {
-    return [];
+    return unsubscibedChannels;
 }
 
 const generateInternalId = (): number => {
