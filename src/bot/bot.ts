@@ -7,11 +7,13 @@ import { Movie } from "../types/movies/movies";
 import Film from "../db/models/film.model";
 import { Admin } from "../types/roles/admin";
 import adminRepository from "../db/repositories/admin.repository";
+import channelRepository from "../db/repositories/channel.repository";
 
 export default class Bot {
     bot: Telegraf;
     filmRepository;
     adminRepository;
+    channelRepository;
 
     constructor(tg_token: string) {
         this.bot = new Telegraf(tg_token);
@@ -20,11 +22,13 @@ export default class Bot {
         }
         this.filmRepository = filmRepository;
         this.adminRepository = adminRepository;
+        this.channelRepository = channelRepository;
     }
 
     runBot = () => {
         this.bot.launch();
 
+        this.bot.start(this.startCommand);
         this.bot.command("add", this.addMovieCommand);
         this.bot.command("get", this.getMovieCommand);
 
@@ -34,43 +38,41 @@ export default class Bot {
 
     startCommand = async (ctx: Context) => {
         const userId = ctx.from?.id;
-        if (userId) {
-            const unsubscribedChannels = await getUnsubscribedChannels(
-                this,
-                userId
+        if (!userId) {
+            return;
+        }
+
+        const unsubscribedChannels = await getUnsubscribedChannels(
+            this,
+            userId
+        );
+
+        if (unsubscribedChannels.length) {
+            let inlineKeyboard: InlineKeyboardButton[][] = [];
+            unsubscribedChannels.forEach((value, index, array) => {
+                const channelLinkButton: InlineKeyboardButton = {
+                    url: `https://t.me/${value.username}`,
+                    text: value.username,
+                };
+                inlineKeyboard.push([channelLinkButton]);
+            });
+
+            ctx.reply(
+                "Упс, ты подписан не на все каналы. Подпишись на них, чтобы получить доступ к фильмам.",
+                {
+                    reply_markup: {
+                        inline_keyboard: inlineKeyboard,
+                    },
+                }
             );
-
-            if (unsubscribedChannels.length) {
-                let inlineKeyboard: InlineKeyboardButton[][] = [];
-                unsubscribedChannels.forEach((value, index, array) => {
-                    const channelLinkButton: InlineKeyboardButton = {
-                        url: `https://t.me/${value}`,
-                        text: value,
-                    };
-                    inlineKeyboard.push([channelLinkButton]);
-                });
-
-                ctx.reply(
-                    "Упс, ты подписан не на все каналы. Подпишись на них, чтобы получить доступ к фильмам.",
-                    {
-                        reply_markup: {
-                            inline_keyboard: inlineKeyboard,
-                        },
-                    }
-                );
-            }
+        }
+        else {
+            ctx.reply("Поздравляю, ты подписан на все каналы!");
         }
     };
 
     addMovieCommand = async (ctx: Context) => {
         if (ctx.from?.is_bot) return;
-
-        const admins = await this.adminRepository.getAll();
-
-        if (admins.filter((value) => {value.id === ctx.from?.id}).length) {
-            ctx.reply("You are not admin!");
-            return;
-        }
 
         const userId = ctx.from?.id;
         if (!userId) return;
@@ -98,6 +100,35 @@ export default class Bot {
     }
 
     getMovieCommand = async (ctx: Context) => {
+        const userId = ctx.from?.id;
+        if (!userId) return;
+
+        const unsubscribedChannels = await getUnsubscribedChannels(
+            this,
+            userId
+        );
+
+        if (unsubscribedChannels.length) {
+            let inlineKeyboard: InlineKeyboardButton[][] = [];
+            unsubscribedChannels.forEach((value, index, array) => {
+                const channelLinkButton: InlineKeyboardButton = {
+                    url: `https://t.me/${value.username}`,
+                    text: value.username,
+                };
+                inlineKeyboard.push([channelLinkButton]);
+            });
+
+            ctx.reply(
+                "Упс, ты подписан не на все каналы. Подпишись на них, чтобы получить доступ к фильмам.",
+                {
+                    reply_markup: {
+                        inline_keyboard: inlineKeyboard,
+                    },
+                }
+            );
+            return;
+        }
+
         const query = ctx.text?.slice(5);
         if (!query) {
             ctx.reply("Укажите номер фильма!");
@@ -122,9 +153,7 @@ export default class Bot {
             Описание: ${movie.short_description}
             Id на кинопоиске: ${movie.external_id}
         `;
-        console.log(movie.alternativeName);
 
-        console.log(caption);
 
         ctx.replyWithPhoto(movie.poster, {
             caption: caption
