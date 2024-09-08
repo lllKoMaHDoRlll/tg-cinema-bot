@@ -3,11 +3,10 @@ import { getUnsubscribedChannels } from "../utils/utils";
 import { InlineKeyboardButton } from "telegraf/typings/core/types/typegram";
 import { searchMovie } from "../utils/API/movies";
 import filmRepository from "../db/repositories/film.repository";
-import { Movie } from "../types/movies/movies";
 import Film from "../db/models/film.model";
-import { Admin } from "../types/roles/admin";
 import adminRepository from "../db/repositories/admin.repository";
 import channelRepository from "../db/repositories/channel.repository";
+import Channel from "../db/models/channel.model";
 
 export default class Bot {
     bot: Telegraf;
@@ -20,6 +19,7 @@ export default class Bot {
         if (!this.bot) {
             throw new Error("Initialization failed. Check TG_TOKEN");
         }
+        
         this.filmRepository = filmRepository;
         this.adminRepository = adminRepository;
         this.channelRepository = channelRepository;
@@ -38,33 +38,12 @@ export default class Bot {
 
     startCommand = async (ctx: Context) => {
         const userId = ctx.from?.id;
-        if (!userId) {
-            return;
-        }
+        if (!userId) return;
 
-        const unsubscribedChannels = await getUnsubscribedChannels(
-            this,
-            userId
-        );
+        const unsubscribedChannels = await getUnsubscribedChannels(this, userId);
 
         if (unsubscribedChannels.length) {
-            let inlineKeyboard: InlineKeyboardButton[][] = [];
-            unsubscribedChannels.forEach((value, index, array) => {
-                const channelLinkButton: InlineKeyboardButton = {
-                    url: `https://t.me/${value.username}`,
-                    text: value.username,
-                };
-                inlineKeyboard.push([channelLinkButton]);
-            });
-
-            ctx.reply(
-                "Упс, ты подписан не на все каналы. Подпишись на них, чтобы получить доступ к фильмам.",
-                {
-                    reply_markup: {
-                        inline_keyboard: inlineKeyboard,
-                    },
-                }
-            );
+            this.askToSubscribe(ctx, unsubscribedChannels);
         }
         else {
             ctx.reply("Поздравляю, ты подписан на все каналы!");
@@ -103,29 +82,10 @@ export default class Bot {
         const userId = ctx.from?.id;
         if (!userId) return;
 
-        const unsubscribedChannels = await getUnsubscribedChannels(
-            this,
-            userId
-        );
+        const unsubscribedChannels = await getUnsubscribedChannels(this, userId);
 
         if (unsubscribedChannels.length) {
-            let inlineKeyboard: InlineKeyboardButton[][] = [];
-            unsubscribedChannels.forEach((value, index, array) => {
-                const channelLinkButton: InlineKeyboardButton = {
-                    url: `https://t.me/${value.username}`,
-                    text: value.username,
-                };
-                inlineKeyboard.push([channelLinkButton]);
-            });
-
-            ctx.reply(
-                "Упс, ты подписан не на все каналы. Подпишись на них, чтобы получить доступ к фильмам.",
-                {
-                    reply_markup: {
-                        inline_keyboard: inlineKeyboard,
-                    },
-                }
-            );
+            this.askToSubscribe(ctx, unsubscribedChannels);
             return;
         }
 
@@ -144,8 +104,6 @@ export default class Bot {
             return;
         }
 
-        console.log(movie);
-
         const caption = `
             Название: ${movie.name}
             Оригинальное название: ${movie.alternative_name}
@@ -154,9 +112,26 @@ export default class Bot {
             Id на кинопоиске: ${movie.external_id}
         `;
 
-
         ctx.replyWithPhoto(movie.poster, {
             caption: caption
         });
+    }
+
+    askToSubscribe = async (ctx: Context, unsubscribedChannels: Channel[]) => {
+        let inlineKeyboard: InlineKeyboardButton[][] = [];
+        unsubscribedChannels.forEach((value, index, array) => {
+            const channelLinkButton: InlineKeyboardButton = {
+                url: `https://t.me/${value.username}`,
+                text: value.username,
+            };
+            inlineKeyboard.push([channelLinkButton]);
+        });
+
+        ctx.reply(
+            "Упс, ты подписан не на все каналы. Подпишись на них, чтобы получить доступ к фильмам.",
+            {
+                reply_markup: { inline_keyboard: inlineKeyboard, },
+            }
+        );
     }
 }
