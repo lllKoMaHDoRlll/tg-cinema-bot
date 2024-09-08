@@ -1,3 +1,4 @@
+import { ADD_MOVIE_SUCCESS, ADMINS_COMMANDS_LIST, MOVIE_DESCRIPTION, NO_MOVIE_FOUND_WITH_ID, NOT_ADMIN_ALERT, NOT_SUBSCRIBED_ALERT, REQUEST_MOVIE_ID, REQUEST_MOVIE_NAME, SUBSCRIBED_CONGRATULATION, USER_COMMANDS_LIST } from './../utils/messages.template';
 import { Context, Telegraf } from "telegraf";
 import { getUnsubscribedChannels } from "../utils/utils";
 import { InlineKeyboardButton } from "telegraf/typings/core/types/typegram";
@@ -49,7 +50,7 @@ export default class Bot {
             this.askToSubscribe(ctx, unsubscribedChannels);
         }
         else {
-            ctx.reply("Поздравляю, ты подписан на все каналы!");
+            ctx.reply(SUBSCRIBED_CONGRATULATION());
         }
     };
 
@@ -62,13 +63,13 @@ export default class Bot {
 
         if (!isAdmin) {
             console.log(userId + ": " + ctx.from.first_name);
-            ctx.reply("Вы не админ!");
+            ctx.reply(NOT_ADMIN_ALERT());
             return;
         }
 
         const query = ctx.text?.slice(5);
         if (!query) {
-            ctx.reply("Укажите название фильма!");
+            ctx.reply(REQUEST_MOVIE_NAME());
             return;
         }
 
@@ -77,7 +78,7 @@ export default class Bot {
         await this.filmRepository.create(movie);
 
         ctx.replyWithPhoto(movie.poster, {
-            caption: "Фильм \"" + movie.name + "\" был успешно добавлен.\n\nЕго id: " + movie.internal_id
+            caption: ADD_MOVIE_SUCCESS(movie.name, movie.internal_id)
         })
     }
 
@@ -94,7 +95,7 @@ export default class Bot {
 
         const query = ctx.text?.slice(5);
         if (!query) {
-            ctx.reply("Укажите номер фильма!");
+            ctx.reply(REQUEST_MOVIE_ID());
             return;
         }
 
@@ -103,20 +104,12 @@ export default class Bot {
         const movie: Film | undefined = await this.filmRepository.getByInternalId(internalId);
 
         if (!movie) {
-            ctx.reply("Фильм с указанным номером не найден, проверьте правильность номера.");
+            ctx.reply(NO_MOVIE_FOUND_WITH_ID());
             return;
         }
 
-        const caption = `
-            Название: ${movie.name}
-            Оригинальное название: ${movie.alternative_name}
-            Год: ${movie.year}
-            Описание: ${movie.short_description}
-            Id на кинопоиске: ${movie.external_id}
-        `;
-
         ctx.replyWithPhoto(movie.poster, {
-            caption: caption
+            caption: MOVIE_DESCRIPTION(movie.name, movie.alternative_name, movie.year, movie.short_description, movie.external_id)
         });
     }
 
@@ -126,19 +119,9 @@ export default class Bot {
 
         const isAdmin = await this.adminRepository.getById(userId);
 
-        let messageText = `
-Вот список доступных команд: 
-
-1. /start - Проверить подписку на каналы.
-2. /get номер_фильма - Получить фильм по его номеру.
-3. /help - Список комманд.
-        `;
+        let messageText = USER_COMMANDS_LIST();
         if (isAdmin) {
-            messageText += `
-Команды, доступные для админов:
-
-1. /add название_фильма - добавить фильм и получить его номер.
-            `
+            messageText += "\n" + ADMINS_COMMANDS_LIST()
         }
 
         ctx.reply(messageText);
@@ -155,7 +138,7 @@ export default class Bot {
         });
 
         ctx.reply(
-            "Упс, ты подписан не на все каналы. Подпишись на них, чтобы получить доступ к фильмам.",
+            NOT_SUBSCRIBED_ALERT(),
             {
                 reply_markup: { inline_keyboard: inlineKeyboard, },
             }
